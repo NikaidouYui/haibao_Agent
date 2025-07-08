@@ -275,7 +275,7 @@ class GeminiClient:
         api_version, model, data = self._convert_request_data(request, contents, safety_settings, system_instruction)
         
         
-        url = f"https://generativelanguage.googleapis.com/{api_version}/models/{model}:streamGenerateContent?key={self.api_key}&alt=sse"
+        url = f"{settings.GEMINI_BASE_URL}/{api_version}/models/{model}:streamGenerateContent?key={self.api_key}&alt=sse"
         headers = {
             "Content-Type": "application/json",
         }
@@ -320,7 +320,7 @@ class GeminiClient:
 
         api_version, model, data = self._convert_request_data(request, contents, safety_settings, system_instruction)
         
-        url = f"https://generativelanguage.googleapis.com/{api_version}/models/{model}:generateContent?key={self.api_key}"
+        url = f"{settings.GEMINI_BASE_URL}/{api_version}/models/{model}:generateContent?key={self.api_key}"
         headers = {
             "Content-Type": "application/json",
         }
@@ -455,8 +455,7 @@ class GeminiClient:
 
     @staticmethod
     async def list_available_models(api_key) -> list:
-        url = "https://generativelanguage.googleapis.com/v1beta/models?key={}".format(
-            api_key)
+        url = f"{settings.GEMINI_BASE_URL}/v1beta/models?key={api_key}"
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
             response.raise_for_status()

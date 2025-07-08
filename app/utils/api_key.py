@@ -78,7 +78,7 @@ async def test_api_key(api_key: str) -> bool:
     """
     try:
         import httpx
-        url = "https://generativelanguage.googleapis.com/v1beta/models?key={}".format(api_key)
+        url = f"{settings.GEMINI_BASE_URL}/v1beta/models?key={api_key}"
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
             response.raise_for_status()
