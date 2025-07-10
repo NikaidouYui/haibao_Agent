@@ -15,7 +15,7 @@ from app.utils import (
     handle_exception,
     log
 )
-from app.config.persistence import save_settings, load_settings
+from app.config.persistence import get_persistence
 from app.api import router, init_router, dashboard_router, init_dashboard_router
 from app.vertex.vertex_ai_init import init_vertex_ai
 from app.vertex.credentials_manager import CredentialManager
@@ -43,7 +43,8 @@ if settings.ALLOWED_ORIGINS:
     )
 
 # --------------- 全局实例 ---------------
-load_settings()
+persistence = get_persistence()
+persistence.load_settings()
 # 初始化API密钥管理器
 key_manager = APIKeyManager()
 
@@ -118,7 +119,7 @@ async def check_remaining_keys_async(keys_to_check: list, initial_invalid_keys: 
     # 只有当无效密钥列表发生变化时才保存
     if new_invalid_keys_set != current_invalid_keys_set:
         settings.INVALID_API_KEYS = ','.join(sorted(list(new_invalid_keys_set)))
-        save_settings()
+        persistence.save_settings()
 
     log('info', f"密钥检查任务完成。当前总可用密钥数量: {len(key_manager.api_keys)}")
 
@@ -131,7 +132,7 @@ sys.excepthook = handle_exception
 async def startup_event():
     
     # 首先加载持久化设置，确保所有配置都是最新的
-    load_settings()
+    persistence.load_settings()
     
     
     # 重新加载vertex配置，确保获取到最新的持久化设置
@@ -195,7 +196,7 @@ async def startup_event():
             new_invalid_keys_set = current_invalid_keys_set.union(set(initial_invalid_keys))
             if new_invalid_keys_set != current_invalid_keys_set:
                  settings.INVALID_API_KEYS = ','.join(sorted(list(new_invalid_keys_set)))
-                 save_settings()
+                 persistence.save_settings()
                  log('info', f"更新初始无效密钥列表完成，总无效密钥数: {len(new_invalid_keys_set)}")
 
     else: # 跳过检查

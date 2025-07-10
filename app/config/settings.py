@@ -25,6 +25,15 @@ FAKE_STREAMING = os.environ.get("FAKE_STREAMING", "true").lower() in ["true", "1
 STORAGE_DIR = os.environ.get("STORAGE_DIR", "/hajimi/settings/")
 ENABLE_STORAGE = os.environ.get("ENABLE_STORAGE", "false").lower() in ["true", "1", "yes"]
 
+# 持久化模式 ('file' or 'mysql')
+PERSISTENCE_MODE = os.environ.get("PERSISTENCE_MODE", "file").lower()
+
+# MySQL 连接信息
+MYSQL_HOST = os.environ.get("MYSQL_HOST", "localhost")
+MYSQL_USER = os.environ.get("MYSQL_USER", "root")
+MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD", "")
+MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE", "hajimi")
+
 # 并发请求配置
 CONCURRENT_REQUESTS = int(os.environ.get("CONCURRENT_REQUESTS", "1"))  # 默认并发请求数
 INCREASE_CONCURRENT_ON_FAILURE = int(os.environ.get("INCREASE_CONCURRENT_ON_FAILURE", "0"))  # 失败时增加的并发数
