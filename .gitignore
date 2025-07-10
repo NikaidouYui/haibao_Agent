@@ -2,3 +2,8 @@ __pycache__/
 .env
 data/*
 .env
+
+# Node
+hajimiUI/node_modules
+
+

@@ -110,7 +110,12 @@ class FilePersistence(Persistence):
                                     os.environ["VERTEX_EXPRESS_API_KEY"] = value
                         else:
                             setattr(settings, name, value)
-                
+               
+                # Ensure GEMINI_BASE_URL has a default value if not loaded or empty
+                if not hasattr(settings, 'GEMINI_BASE_URL') or not settings.GEMINI_BASE_URL:
+                   setattr(settings, 'GEMINI_BASE_URL', "https://generativelanguage.googleapis.com")
+                   log('info', "GEMINI_BASE_URL未设置，已回退到默认值。")
+
                 self._reload_vertex_config()
                 log('info', f"从文件加载设置成功")
                 return True

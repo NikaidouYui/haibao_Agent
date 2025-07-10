@@ -180,6 +180,7 @@ async def get_dashboard_data():
         "max_retry_num": settings.MAX_RETRY_NUM,
         # 添加空响应重试次数限制
         "max_empty_responses": settings.MAX_EMPTY_RESPONSES,
+        "gemini_base_url": settings.GEMINI_BASE_URL,
     }
 
 @dashboard_router.post("/reset-stats")
@@ -579,6 +580,15 @@ async def update_config(config_data: dict):
                 log('info', f"空响应重试次数已更新为：{value}")
             except ValueError as e:
                 raise HTTPException(status_code=422, detail=f"参数类型错误：{str(e)}")
+
+        elif config_key == "gemini_base_url":
+            if not isinstance(config_value, str):
+                raise HTTPException(status_code=422, detail="参数类型错误：应为字符串")
+            # A simple check for http/https is enough for now.
+            if not config_value.startswith(('http://', 'https://')):
+                raise HTTPException(status_code=422, detail="URL格式无效，必须以http://或https://开头")
+            settings.GEMINI_BASE_URL = config_value.rstrip('/')
+            log('info', f"Gemini API 基础URL已更新为：{settings.GEMINI_BASE_URL}")
         
         else:
             raise HTTPException(status_code=400, detail=f"不支持的配置项：{config_key}")

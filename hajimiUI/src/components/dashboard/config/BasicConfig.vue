@@ -7,7 +7,8 @@ const dashboardStore = useDashboardStore()
 // Initialize localConfig with default structure
 const localConfig = reactive({
   maxRequestsPerMinute: 0,
-  maxRequestsPerDayPerIp: 0
+  maxRequestsPerDayPerIp: 0,
+  geminiBaseUrl: ''
 })
 
 const populatedFromStore = ref(false);
@@ -17,12 +18,14 @@ watch(
   () => ({
     storeMaxRequestsPerMinute: dashboardStore.config.maxRequestsPerMinute,
     storeMaxRequestsPerDayPerIp: dashboardStore.config.maxRequestsPerDayPerIp,
+    storeGeminiBaseUrl: dashboardStore.config.geminiBaseUrl,
     configIsActuallyLoaded: dashboardStore.isConfigLoaded,
   }),
   (newValues) => {
     if (newValues.configIsActuallyLoaded && !populatedFromStore.value) {
       localConfig.maxRequestsPerMinute = newValues.storeMaxRequestsPerMinute;
       localConfig.maxRequestsPerDayPerIp = newValues.storeMaxRequestsPerDayPerIp;
+      localConfig.geminiBaseUrl = newValues.storeGeminiBaseUrl;
       populatedFromStore.value = true;
     }
   },
@@ -57,9 +60,9 @@ async function saveComponentConfigs(passwordFromParent) {
 
   if (allSucceeded && individualMessages.length === 0) {
     // 如果没有任何更改，也算成功，但提示用户
-     return { success: true, message: '基本配置: 无更改需要保存' };
+    return { success: true, message: '基本配置: 无更改需要保存' };
   }
-  
+
   return {
     success: allSucceeded,
     message: `基本配置: ${individualMessages.join('; ')}`
@@ -75,31 +78,29 @@ defineExpose({
 <template>
   <div class="basic-config">
     <h3 class="section-title">基本配置</h3>
-    
+
     <div class="config-form">
       <!-- 数值配置项 -->
       <div class="config-row">
         <div class="config-group">
           <label class="config-label">每分钟请求限制</label>
-          <input 
-            type="number" 
-            class="config-input" 
-            v-model.number="localConfig.maxRequestsPerMinute" 
-            min="0"
-          >
+          <input type="number" class="config-input" v-model.number="localConfig.maxRequestsPerMinute" min="0">
         </div>
-        
+
         <div class="config-group">
           <label class="config-label">每IP每日请求限制</label>
-          <input 
-            type="number" 
-            class="config-input" 
-            v-model.number="localConfig.maxRequestsPerDayPerIp" 
-            min="0"
-          >
+          <input type="number" class="config-input" v-model.number="localConfig.maxRequestsPerDayPerIp" min="0">
+        </div>
+
+      </div>
+
+      <div class="config-row">
+        <div class="config-group">
+          <label class="config-label">Gemini API 基础URL</label>
+          <input type="text" class="config-input" v-model="localConfig.geminiBaseUrl">
         </div>
       </div>
-      
+
       <!-- 移除独立的保存区域 -->
       <!-- 消息提示由父组件处理 -->
     </div>
@@ -181,7 +182,7 @@ defineExpose({
   .config-row {
     gap: 10px;
   }
-  
+
   .config-group {
     min-width: 100px;
   }
@@ -193,13 +194,13 @@ defineExpose({
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .config-group {
     width: 100%;
   }
-  
+
   .config-form {
     padding: 15px;
   }
 }
-</style> 
+</style>
