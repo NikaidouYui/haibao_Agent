@@ -16,7 +16,7 @@ from app.services import GeminiClient
 from app.utils.auth import verify_web_password
 from app.utils.maintenance import api_call_stats_clean
 from app.utils.logging import log, vertex_log_manager
-from app.config.persistence import save_settings
+from app.config.persistence import get_persistence
 from app.utils.stats import api_stats_manager
 from typing import List
 import json
@@ -414,7 +414,8 @@ async def update_config(config_data: dict):
             # 检查是否为空字符串或"true"，如果是，则不更新
             if not config_value or config_value.lower() == "true":
                 log('info', f"Google Credentials JSON未更新，因为值为空或为'true'")
-                save_settings() # 仍然保存其他可能的设置更改
+                persistence = get_persistence()
+                persistence.save_settings() # 仍然保存其他可能的设置更改
                 return {"status": "success", "message": f"配置项 {config_key} 未更新，值为空或为'true'"}
 
             # Validate JSON structure if not empty
@@ -485,7 +486,8 @@ async def update_config(config_data: dict):
                 log('warning', "CredentialManager未初始化，无法加载Google Credentials JSON。")
             
             # Save all settings changes
-            save_settings() # Moved save_settings here to ensure it's called for this key
+            persistence = get_persistence()
+            persistence.save_settings() # Moved save_settings here to ensure it's called for this key
 
             # Trigger re-initialization of Vertex AI (which can re-init the global client)
             try:
@@ -580,7 +582,8 @@ async def update_config(config_data: dict):
         
         else:
             raise HTTPException(status_code=400, detail=f"不支持的配置项：{config_key}")
-        save_settings()
+        persistence = get_persistence()
+        persistence.save_settings()
         return {"status": "success", "message": f"配置项 {config_key} 已更新"}
     except HTTPException:
         raise
@@ -721,7 +724,8 @@ def start_api_key_test_in_thread(keys):
         settings.INVALID_API_KEYS = ','.join(invalid_keys)
         
         # 保存设置
-        save_settings()
+        persistence = get_persistence()
+        persistence.save_settings()
         
         # 重置密钥栈
         key_manager._reset_key_stack()
@@ -771,7 +775,8 @@ async def clear_invalid_api_keys(password_data: dict):
         
         # 清除无效密钥
         settings.INVALID_API_KEYS = ""
-        save_settings()
+        persistence = get_persistence()
+        persistence.save_settings()
         
         log('info', f"已清除 {invalid_count} 个失效的API密钥")
         

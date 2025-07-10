@@ -1,0 +1,13 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hajimi_app
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/hajimi/settings
+    ports:
+      - "7860:7860"
+    restart: unless-stopped

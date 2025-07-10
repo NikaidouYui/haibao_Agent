@@ -133,6 +133,11 @@ async def startup_event():
     
     # 首先加载持久化设置，确保所有配置都是最新的
     persistence.load_settings()
+
+    # 禁用 uvicorn 日志
+    import logging
+    logging.getLogger("uvicorn").disabled = True
+    logging.getLogger("uvicorn.access").disabled = True
     
     
     # 重新加载vertex配置，确保获取到最新的持久化设置

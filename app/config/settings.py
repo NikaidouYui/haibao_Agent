@@ -33,6 +33,7 @@ MYSQL_HOST = os.environ.get("MYSQL_HOST", "localhost")
 MYSQL_USER = os.environ.get("MYSQL_USER", "root")
 MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD", "")
 MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE", "hajimi")
+MYSQL_PORT = int(os.environ.get("MYSQL_PORT", "3306"))
 
 # 并发请求配置
 CONCURRENT_REQUESTS = int(os.environ.get("CONCURRENT_REQUESTS", "1"))  # 默认并发请求数
@@ -119,10 +120,6 @@ api_call_stats = {
 stats_lock = asyncio.Lock() 
 
 # 日志配置
-logging.getLogger("uvicorn").disabled = True
-logging.getLogger("uvicorn.access").disabled = True
-
-
 # ---------- 以下配置信息已废弃 ----------
 
 # 假流式请求的空内容返回间隔（秒）

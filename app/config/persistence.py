@@ -3,7 +3,9 @@ import os
 import inspect
 import pathlib
 import mysql.connector
+import ast
 from abc import ABC, abstractmethod
+from typing import Any, Optional
 from app.config import settings
 from app.utils.logging import log
 
@@ -25,15 +27,16 @@ EXCLUDED_SETTINGS = [
     "MYSQL_USER",
     "MYSQL_PASSWORD",
     "MYSQL_DATABASE",
+    "MYSQL_PORT",
 ]
 
 class Persistence(ABC):
     @abstractmethod
-    def save_settings(self):
+    def save_settings(self) -> Any:
         pass
 
     @abstractmethod
-    def load_settings(self):
+    def load_settings(self) -> Any:
         pass
 
 class FilePersistence(Persistence):
@@ -141,6 +144,7 @@ class MySQLPersistence(Persistence):
         self.user = settings.MYSQL_USER
         self.password = settings.MYSQL_PASSWORD
         self.database = settings.MYSQL_DATABASE
+        self.port = settings.MYSQL_PORT
         self.connection = None
         self._connect()
         self._create_table()
@@ -151,7 +155,8 @@ class MySQLPersistence(Persistence):
                 host=self.host,
                 user=self.user,
                 password=self.password,
-                database=self.database
+                database=self.database,
+                port=self.port
             )
             log('info', "成功连接到MySQL数据库")
         except mysql.connector.Error as err:
@@ -174,7 +179,12 @@ class MySQLPersistence(Persistence):
             log('error', f"创建表失败: {err}")
 
     def save_settings(self):
+        if not self.connection or not self.connection.is_connected():
+            log('warning', "MySQL连接丢失。正在尝试重新连接...")
+            self._connect()
+
         if not self.connection:
+            log('error', "无法保存设置，没有活动的MySQL连接。")
             return
         try:
             cursor = self.connection.cursor()
@@ -188,7 +198,10 @@ class MySQLPersistence(Persistence):
                     try:
                         # For simplicity, we'll store all values as strings.
                         # Complex objects would need serialization (e.g., to JSON).
-                        settings_dict[name] = str(value)
+                        if isinstance(value, (dict, list)):
+                            settings_dict[name] = json.dumps(value, ensure_ascii=False)
+                        else:
+                            settings_dict[name] = str(value)
                     except (TypeError, OverflowError):
                         continue
             
@@ -204,7 +217,12 @@ class MySQLPersistence(Persistence):
             self.connection.rollback()
 
     def load_settings(self):
+        if not self.connection or not self.connection.is_connected():
+            log('warning', "MySQL连接丢失。正在尝试重新连接...")
+            self._connect()
+
         if not self.connection:
+            log('error', "无法加载设置，没有活动的MySQL连接。")
             return False
         try:
             cursor = self.connection.cursor(dictionary=True)
@@ -213,9 +231,36 @@ class MySQLPersistence(Persistence):
 
             for name, value in loaded_settings.items():
                 if hasattr(settings, name) and name not in EXCLUDED_SETTINGS:
-                    # Here we assume the type conversion is not needed or handled elsewhere
-                    # A more robust solution would handle type casting based on original type
-                    setattr(settings, name, value)
+                    original_value = getattr(settings, name)
+                    original_type = type(original_value)
+                    try:
+                        if original_type == bool:
+                            converted_value = value.lower() in ['true', '1', 'yes']
+                        elif original_type == int:
+                            converted_value = int(value)
+                        elif original_type == float:
+                            converted_value = float(value)
+                        elif original_type == list or original_type == set:
+                            # Assuming comma-separated strings for lists/sets
+                            converted_value = original_type([item.strip() for item in value.split(',') if item.strip()])
+                        elif original_type == dict:
+                            try:
+                                converted_value = json.loads(value)
+                            except json.JSONDecodeError:
+                                try:
+                                    # Try to evaluate as a Python literal, e.g., a dict with single quotes
+                                    converted_value = ast.literal_eval(value)
+                                    if not isinstance(converted_value, original_type):
+                                        log('warning', f"Evaluated literal for '{name}' has wrong type, keeping as string.")
+                                        converted_value = value
+                                except (ValueError, SyntaxError):
+                                    log('warning', f"Could not decode JSON or literal for setting '{name}', keeping as string.")
+                                    converted_value = value
+                        else:
+                            converted_value = value
+                        setattr(settings, name, converted_value)
+                    except (ValueError, TypeError) as e:
+                        log('warning', f"无法将加载的设置 '{name}' 的值 '{value}' 转换为类型 {original_type.__name__}: {e}")
             
             log('info', "从MySQL加载设置成功")
             return True
