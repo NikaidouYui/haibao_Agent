@@ -19,9 +19,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Read version from file
+    - name: Generate version number
       id: version
-      run: echo "VERSION=$(cat version.txt | grep version= | cut -d= -f2)" >> $GITHUB_OUTPUT
+      run: echo "VERSION=1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
 
     - name: Log in to the GitHub Container Registry
       uses: docker/login-action@v3
