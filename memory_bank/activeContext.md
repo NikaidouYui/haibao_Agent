@@ -1,9 +1,25 @@
-# 当前任务上下文 - 添加GEMINI_BASE_URL配置
+# 当前任务上下文 - 修复app/templates/assets目录缺失错误
 
 ## 任务描述
-在基本配置界面中添加一栏用于设置和显示GEMINI_BASE_URL
+解决应用启动时出现的"Directory 'app/templates/assets' does not exist"错误
 
 ## 任务开始时间
+2025-07-22 15:27:00
+
+## 错误日志
+```
+hajimi_app  | [2025-07-22 15:27:00] [ERROR] []--[]-500: 未捕获的异常: Directory 'app/templates/assets' does not exist
+```
+
+## 问题分析
+根据Memory Bank记录，项目已实现统一Dockerfile配置，前端构建应输出到app/templates/assets目录，但运行时该目录不存在，导致应用启动失败。
+
+## 历史上下文 - 添加GEMINI_BASE_URL配置
+
+### 任务描述
+在基本配置界面中添加一栏用于设置和显示GEMINI_BASE_URL
+
+### 任务开始时间
 2025-07-11 02:11:45
 
 ## 初始分析
