@@ -21,7 +21,9 @@ jobs:
 
     - name: Generate version number
       id: version
-      run: echo "VERSION=1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
+      run: |
+        echo "VERSION=1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
+        echo "version=1.0.${{ github.run_number }}" > version.txt
 
     - name: Log in to the GitHub Container Registry
       uses: docker/login-action@v3
