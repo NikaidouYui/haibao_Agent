@@ -207,3 +207,89 @@ hajimi_app  | [2025-07-22 15:27:00] [ERROR] []--[]-500: 未捕获的异常: Dire
 - **文件路径优化**：利用vite.config.js的输出路径配置
 - **依赖管理**：使用uv进行Python包管理，npm进行前端包管理
 - **镜像优化**：使用alpine和slim镜像减小体积
+---
+## 错误修复完成 - 2025-07-22 15:34:00
+
+### 问题解决
+✅ **app/templates/assets目录缺失错误已修复**
+- **根本原因**：[`app/main.py`](app/main.py:251)中使用相对路径`app/templates/assets`，但在Docker容器中工作目录为`/app`，导致路径解析为`/app/app/templates/assets`（不存在），而实际目录为`/app/templates/assets`
+- **修复方案**：将静态文件挂载路径从`app/templates/assets`修改为`templates/assets`
+- **验证结果**：应用成功启动，无目录缺失错误，服务器正常运行在7860端口
+
+### 技术细节
+- **Docker构建正常**：多阶段构建成功，前端资源正确复制到`/app/templates/assets`
+- **路径映射问题**：容器内相对路径与绝对路径的映射关系导致的引用错误
+- **修复影响**：仅影响Docker容器环境，本地开发环境无影响
+
+### 修复记录
+- **修改文件**：[`app/main.py`](app/main.py:251)
+- **修改内容**：`StaticFiles(directory="app/templates/assets")` → `StaticFiles(directory="templates/assets")`
+- **测试验证**：Docker容器启动成功，无静态文件目录错误
+* 2025-07-22 15:35:00 - 调试任务完成：成功修复app/templates/assets目录缺失错误，应用程序现可正常启动
+---
+## 新错误调试任务 - 2025-07-22 15:48:00
+
+### 错误描述
+```
+jinja2.exceptions.TemplateNotFound: 'index.html' not found in search path: '/app/app/templates'
+```
+
+### 根本原因分析
+**问题核心：** Docker容器中模板文件路径配置错误
+
+1. **模板配置问题**：
+   - [`app/main.py`](app/main.py:30) 中配置：`templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))`
+   - `BASE_DIR` 为 `/app/app`（main.py的父目录）
+   - 因此模板搜索路径为 `/app/app/templates`
+
+2. **实际文件位置**：
+   - [`Dockerfile`](Dockerfile:35) 中：`COPY --from=frontend-builder /app/app/templates/assets /app/templates/assets`
+   - [`hajimiUI/build.js`](hajimiUI/build.js:144) 生成的 `index.html` 位于 `/app/templates/index.html`
+   - 静态资源位于 `/app/templates/assets/`
+
+3. **路径不匹配**：
+   - 模板搜索路径：`/app/app/templates/` ❌
+   - 实际文件位置：`/app/templates/` ✅
+
+### 修复方案
+将 [`app/main.py`](app/main.py:30) 中的模板目录配置从相对路径改为绝对路径：
+```python
+# 修改前
+BASE_DIR = pathlib.Path(__file__).parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+# 修改后  
+templates = Jinja2Templates(directory="/app/templates")
+```
+
+### 技术细节
+- Docker多阶段构建正常工作
+- 前端构建脚本正确生成 `index.html` 到 `/app/templates/`
+- 静态文件挂载路径已正确配置为 `templates/assets`
+- 问题仅在于Jinja2模板搜索路径配置错误
+### 修复完成 - 2025-07-22 15:51:30
+
+✅ **模板文件缺失错误已完全修复**
+
+**修复方案执行结果：**
+1. **模板路径配置修复**：
+   - 修改 [`app/main.py`](app/main.py:29) 中模板目录配置
+   - 从相对路径 `str(BASE_DIR / "templates")` 改为绝对路径 `"/app/templates"`
+   - 解决了模板搜索路径错误问题
+
+2. **Dockerfile文件复制修复**：
+   - 修改 [`Dockerfile`](Dockerfile:35) 中的COPY指令
+   - 从 `COPY --from=frontend-builder /app/app/templates/assets /app/templates/assets` 
+   - 改为 `COPY --from=frontend-builder /app/app/templates /app/templates`
+   - 确保 `index.html` 文件被正确复制到容器中
+
+**验证结果：**
+- ✅ 容器启动成功：`INFO: Application startup complete.`
+- ✅ 服务器正常运行：`INFO: Uvicorn running on http://0.0.0.0:7860`
+- ✅ 模板文件存在：`/app/templates/index.html` 和 `/app/templates/assets/` 目录
+- ✅ 无模板错误：完全消除了 `jinja2.exceptions.TemplateNotFound` 错误
+
+**技术要点：**
+- Docker多阶段构建中的文件复制策略
+- Jinja2模板引擎的路径解析机制
+- 容器环境中绝对路径vs相对路径的使用场景

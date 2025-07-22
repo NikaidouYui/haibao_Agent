@@ -25,9 +25,8 @@ import asyncio
 import sys
 import pathlib
 import os
-# 设置模板目录
-BASE_DIR = pathlib.Path(__file__).parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+# 设置模板目录 - 使用绝对路径确保Docker容器中正确引用
+templates = Jinja2Templates(directory="/app/templates")
 
 app = FastAPI(limit="50M")
 

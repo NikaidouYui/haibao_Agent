@@ -31,8 +31,8 @@ RUN uv pip install --system --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY version.txt ./
 
-# Copy the built frontend assets from the builder stage
-COPY --from=frontend-builder /app/app/templates/assets /app/templates/assets
+# Copy the built frontend assets and index.html from the builder stage
+COPY --from=frontend-builder /app/app/templates /app/templates
 
 EXPOSE 7860
 
