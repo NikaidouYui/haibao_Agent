@@ -62,10 +62,25 @@ def init_router(
     MAX_REQUESTS_PER_DAY_PER_IP = _max_requests_per_day_per_ip
 
 async def verify_user_agent(request: Request):
+    user_agent = request.headers.get("User-Agent", "")
+    log('info', f"[DEBUG] User-Agent验证开始",
+        extra={'user_agent': user_agent, 'whitelist_configured': bool(settings.WHITELIST_USER_AGENT),
+               'whitelist_content': list(settings.WHITELIST_USER_AGENT) if settings.WHITELIST_USER_AGENT else []})
+    
     if not settings.WHITELIST_USER_AGENT:
+        log('info', f"[DEBUG] User-Agent白名单未配置，跳过验证")
         return
-    if request.headers.get("User-Agent") not in settings.WHITELIST_USER_AGENT:
+    
+    log('info', f"[DEBUG] User-Agent白名单已配置，开始验证",
+        extra={'user_agent_lower': user_agent.lower(), 'whitelist': list(settings.WHITELIST_USER_AGENT)})
+    
+    if user_agent.lower() not in settings.WHITELIST_USER_AGENT:
+        log('error', f"[DEBUG] User-Agent验证失败，返回403错误",
+            extra={'user_agent': user_agent, 'user_agent_lower': user_agent.lower(),
+                   'whitelist': list(settings.WHITELIST_USER_AGENT)})
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed client")
+    
+    log('info', f"[DEBUG] User-Agent验证通过")
 
 # todo : 添加 gemini 支持(流式返回)
 async def get_cache(cache_key,is_stream: bool,is_gemini=False):

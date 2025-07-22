@@ -133,6 +133,19 @@ async def startup_event():
     # 首先加载持久化设置，确保所有配置都是最新的
     persistence.load_settings()
 
+    # 添加配置调试信息
+    log('info', f"[DEBUG] 应用启动配置检查",
+        extra={
+            'password_configured': bool(settings.PASSWORD),
+            'password_value': settings.PASSWORD,
+            'whitelist_user_agent_configured': bool(settings.WHITELIST_USER_AGENT),
+            'whitelist_user_agent_content': list(settings.WHITELIST_USER_AGENT) if settings.WHITELIST_USER_AGENT else [],
+            'whitelist_user_agent_raw': os.environ.get("WHITELIST_USER_AGENT", ""),
+            'gemini_api_keys_configured': bool(settings.GEMINI_API_KEYS),
+            'gemini_api_keys_count': len(settings.GEMINI_API_KEYS.split(',')) if settings.GEMINI_API_KEYS else 0,
+            'gemini_base_url': settings.GEMINI_BASE_URL
+        })
+
     # 禁用 uvicorn 日志
     import logging
     logging.getLogger("uvicorn").disabled = True

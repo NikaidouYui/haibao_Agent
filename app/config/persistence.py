@@ -21,6 +21,7 @@ EXCLUDED_SETTINGS = [
     "DEFAULT_BLOCKED_MODELS",
     "PUBLIC_MODE",
     "DASHBOARD_URL",
+    "WHITELIST_USER_AGENT",  # 防止User-Agent白名单被持久化
     "version",
     "PERSISTENCE_MODE",
     "MYSQL_HOST",

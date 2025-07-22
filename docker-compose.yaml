@@ -1,9 +1,9 @@
 services:
   app:
+    container_name: hajimi_app
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: hajimi_app
     env_file:
       - .env
     volumes:

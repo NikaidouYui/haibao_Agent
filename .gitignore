@@ -6,4 +6,5 @@ data/*
 # Node
 hajimiUI/node_modules
 
+memory_bank/*
 
