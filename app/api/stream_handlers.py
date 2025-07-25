@@ -23,7 +23,7 @@ async def stream_response_generator(
     else:
         is_gemini = False
         # 转换消息格式
-        contents, system_instruction = GeminiClient.convert_messages(GeminiClient, chat_request.messages,model=chat_request.model)
+        contents, system_instruction = GeminiClient(api_key="").convert_messages(chat_request.messages,model=chat_request.model)
     # 设置初始并发数
     current_concurrent = settings.CONCURRENT_REQUESTS
     max_retry_num = settings.MAX_RETRY_NUM
@@ -136,15 +136,16 @@ async def stream_response_generator(
                             log('info', f"假流式请求成功", 
                                 extra={'key': api_key[:8],'request_type': "fake-stream", 'model': chat_request.model})
                             cached_response, cache_hit = await response_cache_manager.get_and_remove(cache_key)
-                            if cache_hit and cached_response: 
-                                if is_gemini :
+                            if cache_hit and cached_response:
+                                if is_gemini:
                                     json_payload = json.dumps(cached_response.data, ensure_ascii=False)
                                     data_to_yield = f"data: {json_payload}\n\n"
                                     yield data_to_yield
                                 else:
-                                    yield openAI_from_Gemini(cached_response,stream=True)
-                            else:
-                                success = False
+                                    yield openAI_from_Gemini(cached_response, stream=True)
+                                # 成功获取并发送数据后，立即返回以终止生成器
+                                return
+                            # 如果缓存未命中，可能是另一个任务已经处理了，让 success 保持 True
                             break
                         elif status == "empty":
                             # 增加空响应计数
@@ -231,7 +232,8 @@ async def stream_response_generator(
         api_key = valid_keys[0]
         
         success = False
-        try:            
+        token = 0
+        try:
             client = GeminiClient(api_key)
             
             # 获取流式响应
@@ -241,7 +243,6 @@ async def stream_response_generator(
                 safety_settings_g2 if 'gemini-2.5' in chat_request.model else safety_settings,
                 system_instruction
             )
-            token=0
             # 处理流式响应
             async for chunk in stream_generator:
                 if chunk :
