@@ -4,6 +4,7 @@ import inspect
 import pathlib
 import mysql.connector
 import ast
+import time
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 from app.config import settings
@@ -156,18 +157,28 @@ class MySQLPersistence(Persistence):
         self._create_table()
 
     def _connect(self):
-        try:
-            self.connection = mysql.connector.connect(
-                host=self.host,
-                user=self.user,
-                password=self.password,
-                database=self.database,
-                port=self.port
-            )
-            log('info', "成功连接到MySQL数据库")
-        except mysql.connector.Error as err:
-            log('error', f"连接MySQL失败: {err}")
-            self.connection = None
+        max_attempts = 15
+        delay = 1  # 初始延迟1秒
+        
+        for attempt in range(1, max_attempts + 1):
+            try:
+                self.connection = mysql.connector.connect(
+                    host=self.host,
+                    user=self.user,
+                    password=self.password,
+                    database=self.database,
+                    port=self.port
+                )
+                log('info', "成功连接到MySQL数据库")
+                return  # 成功连接，退出方法
+            except mysql.connector.Error as err:
+                if attempt < max_attempts:
+                    log('warning', f"数据库连接失败，将在 {delay} 秒后进行第 {attempt}/{max_attempts} 次重试...")
+                    time.sleep(delay)
+                    delay *= 2  # 指数退避
+                else:
+                    log('error', f"连接MySQL失败: {err}")
+                    self.connection = None
 
     def _create_table(self):
         if not self.connection:

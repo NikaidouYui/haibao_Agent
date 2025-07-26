@@ -63,7 +63,7 @@ active_requests_pool = {}
 # 初始化活跃请求管理器
 active_requests_manager = ActiveRequestsManager(requests_pool=active_requests_pool)
 
-SKIP_CHECK_API_KEY = os.environ.get("SKIP_CHECK_API_KEY", "").lower() == "true"
+SKIP_CHECK_API_KEY = True
 
 # --------------- 工具函数 ---------------
 # @app.middleware("http")
