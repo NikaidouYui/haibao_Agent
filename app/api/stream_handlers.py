@@ -132,12 +132,12 @@ async def stream_response_generator(
                     try:
                         status = task.result()
                         # 如果有成功响应内容
-                        if status == "success" :  
-                            success = True
-                            log('info', f"假流式请求成功", 
+                        if status == "success" :
+                            log('info', f"假流式请求成功",
                                 extra={'key': api_key[:8],'request_type': "fake-stream", 'model': chat_request.model})
                             cached_response, cache_hit = await response_cache_manager.get_and_remove(cache_key)
                             if cache_hit and cached_response:
+                                success = True  # 只有在成功获取缓存后才设置 success
                                 if is_gemini:
                                     json_payload = json.dumps(cached_response.data, ensure_ascii=False)
                                     data_to_yield = f"data: {json_payload}\n\n"
@@ -146,8 +146,8 @@ async def stream_response_generator(
                                     yield openAI_from_Gemini(cached_response, stream=True)
                                 # 成功获取并发送数据后，立即返回以终止生成器
                                 return
-                            # 如果缓存未命中，可能是另一个任务已经处理了，让 success 保持 True
-                            break
+                            # 如果缓存未命中，说明被其他任务捷足先登，继续检查其他完成的任务
+                            # 不要在这里 break，继续 for 循环检查其他已完成的任务
                         elif status == "empty":
                             # 增加空响应计数
                             empty_response_count += 1
