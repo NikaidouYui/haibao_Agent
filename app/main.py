@@ -45,7 +45,7 @@ if settings.ALLOWED_ORIGINS:
 persistence = get_persistence()
 persistence.load_settings()
 # 初始化API密钥管理器
-key_manager = APIKeyManager()
+key_manager = APIKeyManager(persistence=persistence)
 
 # 创建全局缓存字典，将作为缓存管理器的内部存储
 response_cache = {}

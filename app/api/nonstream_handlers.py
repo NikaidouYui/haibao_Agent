@@ -21,7 +21,8 @@ async def process_nonstream_request(
     response_cache_manager,
     safety_settings,
     safety_settings_g2,
-    cache_key: str
+    cache_key: str,
+    key_manager
 ):
     """处理非流式API请求"""
     gemini_client = GeminiClient(current_api_key)
@@ -57,7 +58,7 @@ async def process_nonstream_request(
 
     except Exception as e:
         # 处理 API 调用过程中可能发生的任何异常
-        handle_gemini_error(e, current_api_key) 
+        await handle_gemini_error(e, current_api_key, key_manager)
         return "error"
 
 
@@ -71,7 +72,8 @@ async def process_nonstream_request_with_keepalive(
     safety_settings,
     safety_settings_g2,
     cache_key: str,
-    keepalive_interval: float = 30.0  # 保活间隔，默认30秒
+    keepalive_interval: float = 30.0,  # 保活间隔，默认30秒
+    key_manager=None
 ):
     """处理非流式API请求，带TCP保活功能"""
     gemini_client = GeminiClient(current_api_key)
@@ -117,7 +119,7 @@ async def process_nonstream_request_with_keepalive(
         # 取消保活任务
         keepalive_task.cancel()
         # 处理 API 调用过程中可能发生的任何异常
-        handle_gemini_error(e, current_api_key) 
+        await handle_gemini_error(e, current_api_key, key_manager)
         return "error"
 
 
@@ -131,7 +133,8 @@ async def process_nonstream_request_with_simple_keepalive(
     safety_settings,
     safety_settings_g2,
     cache_key: str,
-    keepalive_interval: float = 30.0  # 保活间隔，默认30秒
+    keepalive_interval: float = 30.0,  # 保活间隔，默认30秒
+    key_manager=None
 ):
     """处理非流式API请求，带简化TCP保活功能"""
     gemini_client = GeminiClient(current_api_key)
@@ -177,7 +180,7 @@ async def process_nonstream_request_with_simple_keepalive(
         # 取消保活任务
         keepalive_task.cancel()
         # 处理 API 调用过程中可能发生的任何异常
-        handle_gemini_error(e, current_api_key) 
+        await handle_gemini_error(e, current_api_key, key_manager)
         return "error"
 
 
@@ -308,7 +311,8 @@ async def process_request(
                         response_cache_manager,
                         safety_settings,
                         safety_settings_g2,
-                        cache_key
+                        cache_key,
+                        key_manager
                     )
                 )
             tasks.append((api_key, task))
@@ -344,7 +348,7 @@ async def process_request(
                             extra={'key': api_key[:8], 'request_type': 'non-stream', 'model': chat_request.model})
                 
                 except Exception as e:
-                    handle_gemini_error(e, api_key)
+                    await handle_gemini_error(e, api_key, key_manager)
                 
                 # 更新任务列表，移除已完成的任务
                 tasks = [(k, t) for k, t in tasks if not t.done()]
@@ -477,7 +481,8 @@ async def process_nonstream_with_keepalive_stream(
                             response_cache_manager,
                             safety_settings,
                             safety_settings_g2,
-                            cache_key
+                            cache_key,
+                            key_manager
                         )
                     )
                     tasks.append((api_key, task))
@@ -530,7 +535,7 @@ async def process_nonstream_with_keepalive_stream(
                                     extra={'key': api_key[:8], 'request_type': 'non-stream', 'model': chat_request.model})
                         
                         except Exception as e:
-                            handle_gemini_error(e, api_key)
+                            await handle_gemini_error(e, api_key, key_manager)
                         
                         # 更新任务列表，移除已完成的任务
                         tasks = [(k, t) for k, t in tasks if not t.done()]

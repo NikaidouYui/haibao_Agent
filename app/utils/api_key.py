@@ -10,7 +10,7 @@ import app.config.settings as settings
 logger = logging.getLogger("my_logger")
 
 class APIKeyManager:
-    def __init__(self):
+    def __init__(self, persistence=None):
         self.api_keys = re.findall(
             r"AIzaSy[a-zA-Z0-9_-]{33}", settings.GEMINI_API_KEYS)
         # 加载更多 GEMINI_API_KEYS
@@ -21,10 +21,13 @@ class APIKeyManager:
                 break
 
         self.key_stack = [] # 初始化密钥栈
+        self.temp_failed_keys = set()
+        self.lock = asyncio.Lock()
+        self.persistence = persistence
         self._reset_key_stack() # 初始化时创建随机密钥栈
         self.scheduler = BackgroundScheduler()
+        self.scheduler.add_job(self.reactivate_temp_failed_keys, 'cron', hour=8, minute=0, timezone='UTC')
         self.scheduler.start()
-        self.lock = asyncio.Lock() # Added lock
 
     def _reset_key_stack(self):
         """创建并随机化密钥栈"""
@@ -65,12 +68,42 @@ class APIKeyManager:
             log_msg = format_log_message('INFO', f"API Key{i}: {api_key[:8]}...{api_key[-3:]}")
             logger.info(log_msg)
 
-    # def blacklist_key(self, key):
-    #     log_msg = format_log_message('WARNING', f"{key[:8]} → 暂时禁用 {self.api_key_blacklist_duration} 秒")
-    #     logger.warning(log_msg)
-    #     self.api_key_blacklist.add(key)
-    #     self.scheduler.add_job(lambda: self.api_key_blacklist.discard(key), 'date',
-    #                            run_date=datetime.now() + timedelta(seconds=self.api_key_blacklist_duration))
+    async def handle_permanent_failure(self, api_key: str):
+        async with self.lock:
+            if api_key in self.api_keys:
+                self.api_keys.remove(api_key)
+                log_msg = format_log_message('WARNING', f"永久移除API Key: {api_key[:8]}...")
+                logger.warning(log_msg)
+                
+                invalid_keys = set(settings.INVALID_API_KEYS.split(',')) if settings.INVALID_API_KEYS else set()
+                invalid_keys.add(api_key)
+                settings.INVALID_API_KEYS = ",".join(invalid_keys)
+                
+                if self.persistence:
+                    self.persistence.save_settings()
+                
+                self._reset_key_stack()
+
+    async def handle_temporary_failure(self, api_key: str):
+        async with self.lock:
+            if api_key in self.api_keys:
+                self.api_keys.remove(api_key)
+                self.temp_failed_keys.add(api_key)
+                log_msg = format_log_message('WARNING', f"暂时禁用API Key: {api_key[:8]}...")
+                logger.warning(log_msg)
+                self._reset_key_stack()
+
+    def reactivate_temp_failed_keys(self):
+        asyncio.run(self._reactivate_temp_failed_keys_async())
+
+    async def _reactivate_temp_failed_keys_async(self):
+        async with self.lock:
+            if self.temp_failed_keys:
+                log_msg = format_log_message('INFO', f"重新激活 {len(self.temp_failed_keys)} 个临时失效的API Key")
+                logger.info(log_msg)
+                self.api_keys.extend(list(self.temp_failed_keys))
+                self.temp_failed_keys.clear()
+                self._reset_key_stack()
 
 async def test_api_key(api_key: str) -> bool:
     """
