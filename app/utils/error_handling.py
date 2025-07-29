@@ -2,6 +2,7 @@ import requests
 import httpx # 添加 httpx 导入
 import logging
 import asyncio
+import traceback
 from fastapi import HTTPException, status
 from app.utils.logging import format_log_message
 from app.utils.logging import log
@@ -79,8 +80,10 @@ async def handle_gemini_error(error, current_api_key, key_manager) -> str:
         log('WARNING', error_message, extra={'error_message': error_message})
         return error_message
     else:
+        # 记录完整的异常堆栈跟踪信息
         error_message = f"发生未知错误: {error}"
-        log('ERROR', error_message, extra={'error_message': error_message})
+        stack_trace = traceback.format_exc()
+        log('ERROR', error_message, extra={'error_message': error_message, 'stack_trace': stack_trace})
         return error_message
 
 def translate_error(message: str) -> str:
