@@ -70,12 +70,12 @@ async def handle_gemini_error(error, current_api_key, key_manager) -> str:
             
             return f"未知错误/模型不可用: {status_code}"
 
-    elif isinstance(error, requests.exceptions.ConnectionError):
+    elif isinstance(error, (requests.exceptions.ConnectionError, httpx.ConnectError, httpx.RemoteProtocolError)):
         error_message = "连接错误"
         log('WARNING', error_message, extra={'error_message': error_message})
         return error_message
 
-    elif isinstance(error, requests.exceptions.Timeout):
+    elif isinstance(error, (requests.exceptions.Timeout, httpx.TimeoutException)):
         error_message = "请求超时"
         log('WARNING', error_message, extra={'error_message': error_message})
         return error_message

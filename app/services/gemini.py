@@ -281,8 +281,12 @@ class GeminiClient:
             "Content-Type": "application/json",
         }
         
-        async with httpx.AsyncClient() as client:
-            async with client.stream("POST", url, headers=headers, json=data, timeout=600) as response:
+        # 配置连接参数和超时
+        timeout = httpx.Timeout(60.0, connect=10.0)
+        limits = httpx.Limits(max_keepalive_connections=20, max_connections=100)
+        
+        async with httpx.AsyncClient(timeout=timeout, limits=limits) as client:
+            async with client.stream("POST", url, headers=headers, json=data) as response:
                 response.raise_for_status()
                 buffer = b"" # 用于累积可能不完整的 JSON 数据
                 try:
@@ -327,8 +331,12 @@ class GeminiClient:
         }
         
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(url, headers=headers, json=data, timeout=600) 
+            # 配置连接参数和超时
+            timeout = httpx.Timeout(60.0, connect=10.0)
+            limits = httpx.Limits(max_keepalive_connections=20, max_connections=100)
+            
+            async with httpx.AsyncClient(timeout=timeout, limits=limits) as client:
+                response = await client.post(url, headers=headers, json=data) 
                 response.raise_for_status() # 检查 HTTP 错误状态
             
             return GeminiResponseWrapper(response.json())

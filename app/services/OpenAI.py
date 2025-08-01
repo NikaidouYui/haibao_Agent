@@ -71,8 +71,12 @@ class OpenAIClient:
             "Authorization": f"Bearer {self.api_key}"
         }
         
-        async with httpx.AsyncClient() as client:
-            async with client.stream("POST", url, headers=headers, json=data, timeout=600) as response:
+        # 配置连接参数和超时
+        timeout = httpx.Timeout(60.0, connect=10.0)
+        limits = httpx.Limits(max_keepalive_connections=20, max_connections=100)
+        
+        async with httpx.AsyncClient(timeout=timeout, limits=limits) as client:
+            async with client.stream("POST", url, headers=headers, json=data) as response:
                 buffer = b"" # 用于累积可能不完整的 JSON 数据
                 try:
                     async for line in response.aiter_lines():
