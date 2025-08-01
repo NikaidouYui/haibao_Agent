@@ -72,7 +72,7 @@ class OpenAIClient:
         }
         
         # 配置连接参数和超时
-        timeout = httpx.Timeout(60.0, connect=10.0)
+        timeout = httpx.Timeout(380.0, connect=380.0)
         limits = httpx.Limits(max_keepalive_connections=20, max_connections=100)
         
         async with httpx.AsyncClient(timeout=timeout, limits=limits) as client:

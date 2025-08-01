@@ -140,10 +140,12 @@ async def stream_response_generator(
                                 success = True  # 只有在成功获取缓存后才设置 success
                                 if is_gemini:
                                     json_payload = json.dumps(cached_response.data, ensure_ascii=False)
-                                    data_to_yield = f"data: {json_payload}\n\n"
-                                    yield data_to_yield
+                                    yield f"data: {json_payload}\n\n"
                                 else:
+                                    # 假流式模式：返回SSE格式响应
                                     yield openAI_from_Gemini(cached_response, stream=True)
+                                # 添加流结束标记
+                                yield "data: [DONE]\n\n"
                                 # 成功获取并发送数据后，立即返回以终止生成器
                                 return
                             # 如果缓存未命中，说明被其他任务捷足先登，继续检查其他完成的任务
@@ -171,6 +173,7 @@ async def stream_response_generator(
                     yield gemini_from_text(content="空响应次数达到上限\n请修改输入提示词",finish_reason="STOP",stream=True)
                 else:
                     yield openAI_from_text(model=chat_request.model,content="空响应次数达到上限\n请修改输入提示词",finish_reason="stop",stream=True)
+                yield "data: [DONE]\n\n"
                 
                 return
             
@@ -299,6 +302,7 @@ async def stream_response_generator(
                     yield gemini_from_text(content="空响应次数达到上限\n请修改输入提示词",finish_reason="STOP",stream=True)
                 else:
                     yield openAI_from_text(model=chat_request.model,content="空响应次数达到上限\n请修改输入提示词",finish_reason="stop",stream=True)
+                yield "data: [DONE]\n\n"
                 
                 return
     
@@ -309,7 +313,8 @@ async def stream_response_generator(
     if is_gemini:
         yield gemini_from_text(content="所有API密钥均请求失败\n具体错误请查看轮询日志",finish_reason="STOP",stream=True)
     else:
-        yield openAI_from_text(model=chat_request.model,content="所有API密钥均请求失败\n具体错误请查看轮询日志",finish_reason="stop")
+        yield openAI_from_text(model=chat_request.model,content="所有API密钥均请求失败\n具体错误请查看轮询日志",finish_reason="stop",stream=True)
+    yield "data: [DONE]\n\n"
 
 # 处理假流式模式
 async def handle_fake_streaming(api_key, chat_request, contents, response_cache_manager, system_instruction, safety_settings, safety_settings_g2, cache_key, key_manager):
