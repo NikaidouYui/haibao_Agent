@@ -73,11 +73,13 @@ async def handle_gemini_error(error, current_api_key, key_manager) -> str:
     elif isinstance(error, (requests.exceptions.ConnectionError, httpx.ConnectError, httpx.RemoteProtocolError)):
         error_message = "连接错误"
         log('WARNING', error_message, extra={'error_message': error_message})
+        await key_manager.handle_temporary_failure(current_api_key)
         return error_message
 
     elif isinstance(error, (requests.exceptions.Timeout, httpx.TimeoutException)):
         error_message = "请求超时"
         log('WARNING', error_message, extra={'error_message': error_message})
+        await key_manager.handle_temporary_failure(current_api_key)
         return error_message
     else:
         # 记录完整的异常堆栈跟踪信息
